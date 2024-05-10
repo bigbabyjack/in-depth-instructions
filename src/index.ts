@@ -6,18 +6,6 @@ interface ServiceContext {
   instructions: string[];
 }
 
-interface ServiceResponse {
-  response: Promise<Response>;
-  error?: string;
-  buildPayload: (context: ServiceContext) => Payload;
-}
-
-interface Response {
-  text: string;
-  error?: string;
-  report?: () => void;
-}
-
 interface Payload {
   method: string;
   headers: {
@@ -26,8 +14,18 @@ interface Payload {
   body: string;
 }
 
-class OllamaService implements ServiceResponse {
+
+interface ServiceResponse {
   response: Promise<Response>;
+  error?: string;
+  buildPayload: (context: ServiceContext) => Payload;
+  report?: () => void;
+}
+
+
+
+class OllamaService implements ServiceResponse {
+  response: Promise<any>;
   payload: Payload;
   error?: string;
 
@@ -61,9 +59,6 @@ class OllamaService implements ServiceResponse {
   }
 
   async postResponse(): Promise<any> {
-    console.log(`Sending request to ${this.url}`);
-    // console.log(`Payload: ${JSON.stringify(this.payload)}`);
-
     const response = await fetch(this.url, this.payload);
 
     if (!response.ok) {
@@ -77,50 +72,73 @@ class OllamaService implements ServiceResponse {
     }
   }
 
-  // async getInstructions(context: ServiceContext): Promise<string[]> {
-  //   const instructions: string[] = [];
-  //   for (const line of this.response.text.split("\n")) {
-  //     // regex search for numbers like 1., 2., etc...
-  //     if (/\d+\./.test(line)) {
-  //       instructions.push(line);
-  //     }
-  //
-  //   }
-  //
-  //   return instructions;
-  //
-  // }
-}
+  async getInstructions(): Promise<string[]> {
+    const instructions: string[] = [];
+    const response = await this.response;
+    for (const line of response.response.split("\n\n")) {
+      // regex search for numbers like 1., 2., etc...
+      console.log(`Processing line: ${line}`)
+      instructions.push(line);
 
+    }
+
+    return instructions;
+
+  }
+}
 
 
 async function main() {
 
+  const INITIAL_INSTRUCTIONS = "Your response should be in Markdown format with each step shown as a new line. Do not wrap your entire answer in a code block. Your response should be well structured with headers and subheaders."
+
   const context: ServiceContext = {
     id: '1',
-    query: "Hey there.",
+    query: `Teach me how to write an arrow function in TypeScript. ${INITIAL_INSTRUCTIONS}`,
     instructions: []
   };
 
   const ollamaService = new OllamaService(context);
-  console.log(context);
+  const response = await ollamaService.response;
+  // console.log(`Response: ${JSON.stringify(response)}`);
 
-  const response = await ollamaService.postResponse();
-
-  console.log(response);
   const responseDuration = response.total_duration / 1e+9;
   console.log(`Response Duration: ${(responseDuration).toFixed(2)} seconds`);
-  fs.writeFile('application.log', `Query: ${context.query},\nResponse: ${JSON.stringify(response)}`, (err: any) => {
-    if (err) {
-      console.error(err);
-      return;
-    }
+
+  const logResults = (context: ServiceContext, response: any) => {
+    fs.writeFile('application.log', `Query: ${context.query},\nResponse: ${JSON.stringify(response)}`, (err: any) => {
+      if (err) {
+        console.error(err);
+        return;
+      }
+      console.log('The file has been written successfully.');
+    });
+  }
+
+  logResults(context, response);
+
+  const saveResponse = (context: ServiceContext, response: any) => {
+
+    fs.writeFile('response.md', response.response, (err: any) => {
+      if (err) {
+        console.error(err);
+        return;
+      }
+      console.log('The file has been written successfully.');
+    });
 
 
-    console.log('The file has been written successfully.');
-  });
+  }
 
-  // console.log(ollamaService.getInstructions(context));
+  saveResponse(context, response);
+
+  const instructions = await ollamaService.getInstructions();
+
+  for (let i = 0; i < instructions.length; i++) {
+    const instruction = instructions[i];
+    console.log(`Step ${i + 1}: ${instruction}`);
+    console.log("\n\n")
+  }
 }
 
 main();
