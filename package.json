@@ -5,16 +5,19 @@
   "main": "index.js",
   "keywords": [],
   "scripts": {
-	  "build": "tsc",
-	  "start": "node dist/index.js",
-	  "dev": "nodemon --watch src/ --exec ts-node src/index.ts",
-	  "test": "echo \"Error: no test specified\" && exit 1"
-},
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "nodemon --watch src/ --exec ts-node src/index.ts",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
   "author": "",
   "license": "ISC",
   "devDependencies": {
     "nodemon": "^3.1.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.4.5"
+  },
+  "dependencies": {
+    "fs": "^0.0.1-security"
   }
 }
