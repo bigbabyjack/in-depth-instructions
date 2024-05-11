@@ -85,6 +85,29 @@ class OllamaService implements ServiceResponse {
     return instructions;
 
   }
+  logResults = (context: ServiceContext) => {
+    fs.writeFile('application.log', `Query: ${context.query},\nResponse: ${JSON.stringify(this.response)}`, (err: any) => {
+      if (err) {
+        console.error(err);
+        return;
+      }
+      console.log('The file has been written successfully.');
+    });
+  }
+
+  saveResponse = () => {
+
+    fs.writeFile('response.md', JSON.stringify(this.response), (err: any) => {
+      if (err) {
+        console.error(err);
+        return;
+      }
+      console.log('The file has been written successfully.');
+    });
+
+
+  }
+
 }
 
 
@@ -105,32 +128,10 @@ async function main() {
   const responseDuration = response.total_duration / 1e+9;
   console.log(`Response Duration: ${(responseDuration).toFixed(2)} seconds`);
 
-  const logResults = (context: ServiceContext, response: any) => {
-    fs.writeFile('application.log', `Query: ${context.query},\nResponse: ${JSON.stringify(response)}`, (err: any) => {
-      if (err) {
-        console.error(err);
-        return;
-      }
-      console.log('The file has been written successfully.');
-    });
-  }
 
-  logResults(context, response);
+  ollamaService.logResults(context);
 
-  const saveResponse = (context: ServiceContext, response: any) => {
-
-    fs.writeFile('response.md', response.response, (err: any) => {
-      if (err) {
-        console.error(err);
-        return;
-      }
-      console.log('The file has been written successfully.');
-    });
-
-
-  }
-
-  saveResponse(context, response);
+  ollamaService.saveResponse();
 
   const instructions = await ollamaService.getInstructions();
 
