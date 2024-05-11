@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import { ServiceResponse, ServiceContext, Payload } from './datastructures';
 
-class OllamaService implements ServiceResponse {
+export class OllamaService implements ServiceResponse {
   response: Promise<any>;
   payload: Payload;
   error?: string;
@@ -51,17 +51,18 @@ class OllamaService implements ServiceResponse {
 
   async getInstructions(): Promise<string[]> {
     const instructions: string[] = [];
+    const prompts: string[] = [];
     const response = await this.response;
     for (const line of response.response.split("\n\n")) {
-      // regex search for numbers like 1., 2., etc...
-      console.log(`Processing line: ${line}`)
-      instructions.push(line);
+      prompts.push(line);
 
     }
 
-    return instructions;
 
+    return instructions;
   }
+
+
   logResults = (context: ServiceContext) => {
     fs.writeFile('application.log', `Query: ${context.query},\nResponse: ${JSON.stringify(this.response)}`, (err: any) => {
       if (err) {

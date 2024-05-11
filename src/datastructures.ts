@@ -2,6 +2,7 @@ export interface ServiceContext {
   id: string;
   query: string;
   instructions: string[];
+  context?: string;
 }
 
 export interface Payload {
