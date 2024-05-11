@@ -1,28 +1,39 @@
 import * as fs from 'fs';
-import { ServiceResponse, ServiceContext, Payload } from './datastructures';
+import { ServiceContext, Payload } from './datastructures';
 
-export class OllamaService implements ServiceResponse {
-  response: Promise<any>;
-  payload: Payload;
-  error?: string;
+class Query {
+  query: string
+  constructor(query: string) {
+    this.query = query
+  }
+}
 
-  url = "http://localhost:11434/api/generate";
+interface ModelConfig {
+  [key: string]: { apiUrl: string }
+}
 
-  constructor(context: ServiceContext) {
-    this.payload = this.buildPayload(context);
-    this.response = this.postResponse();
-    this.error = undefined;
+export class LanguageModel {
+  private readonly modelName: string
+  private readonly modelConfigs: ModelConfig = {
+    ['llama3:8b']: { "apiUrl": "http://localhost:11434/api/generate" }
+  };
+  constructor(modelName: string) {
+    if (!this.modelConfigs[modelName]) {
+      throw new Error(`Unknown model name ${modelName}`)
+    }
+    this.modelName = modelName
   }
 
-  buildPayload(context: ServiceContext): Payload {
-    const payload = {
+  async invoke(query: Query): Promise<string> {
+    const apiUrl = this.getApiUrl();
+    const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "phi3",
-        prompt: context.query,
+        model: this.modelName,
+        prompt: query.query,
         stream: false,
         temperature: 0.0,
         max_tokens: 50,
@@ -31,12 +42,30 @@ export class OllamaService implements ServiceResponse {
         presence_penalty: 0,
         stop: ["\n"],
       }),
-    };
-    return payload;
+    })
+
+    const responseData = await response.json()
+    return JSON.stringify(responseData)
   }
 
-  async postResponse(): Promise<any> {
-    const response = await fetch(this.url, this.payload);
+  getApiUrl = () => { return this.modelConfigs[this.modelName].apiUrl }
+
+}
+
+export class OllamaService {
+  response: Promise<any>;
+  private readonly context: ServiceContext;
+  error?: string;
+
+
+  constructor(context: ServiceContext) {
+    this.context = context;
+    this.response = this.postResponse();
+  }
+
+
+  async postResponse(payload: Payload): Promise<any> {
+    const response = await fetch(this.url, payload);
 
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
@@ -47,6 +76,12 @@ export class OllamaService implements ServiceResponse {
     } catch (e) {
       console.log(e);
     }
+  }
+
+  async instruct(context: ServiceContext): string {
+    const initialQuery = context.query
+    let response: string = await this.postResponse()
+    return response
   }
 
   async getInstructions(): Promise<string[]> {
@@ -61,7 +96,6 @@ export class OllamaService implements ServiceResponse {
 
     return instructions;
   }
-
 
   logResults = (context: ServiceContext) => {
     fs.writeFile('application.log', `Query: ${context.query},\nResponse: ${JSON.stringify(this.response)}`, (err: any) => {
