@@ -1,36 +1,17 @@
 import * as fs from 'fs';
-
-interface ServiceContext {
-  id: string;
-  query: string;
-  instructions: string[];
-}
-
-interface Payload {
-  method: string;
-  headers: {
-    "Content-Type": string;
-  };
-  body: string;
-}
-
-
-interface ServiceResponse {
-  response: Promise<Response>;
-  buildPayload: (context: ServiceContext) => Payload;
-}
-
-
+import { ServiceResponse, ServiceContext, Payload } from './datastructures';
 
 class OllamaService implements ServiceResponse {
   response: Promise<any>;
   payload: Payload;
+  error?: string;
 
   url = "http://localhost:11434/api/generate";
 
   constructor(context: ServiceContext) {
     this.payload = this.buildPayload(context);
     this.response = this.postResponse();
+    this.error = undefined;
   }
 
   buildPayload(context: ServiceContext): Payload {
@@ -81,7 +62,6 @@ class OllamaService implements ServiceResponse {
     return instructions;
 
   }
-
   logResults = (context: ServiceContext) => {
     fs.writeFile('application.log', `Query: ${context.query},\nResponse: ${JSON.stringify(this.response)}`, (err: any) => {
       if (err) {
@@ -106,36 +86,3 @@ class OllamaService implements ServiceResponse {
   }
 
 }
-
-
-async function main() {
-
-  const INITIAL_INSTRUCTIONS = "Your response should be in Markdown format with each step shown as a new line. Do not wrap your entire answer in a code block. Your response should be well structured with headers and subheaders."
-
-  const context: ServiceContext = {
-    id: '1',
-    query: `Teach me how to write an arrow function in TypeScript. ${INITIAL_INSTRUCTIONS}`,
-    instructions: []
-  };
-
-  const ollamaService = new OllamaService(context);
-  const response = await ollamaService.response;
-
-  const responseDuration = response.total_duration / 1e+9;
-  console.log(`Response Duration: ${(responseDuration).toFixed(2)} seconds`);
-
-
-  ollamaService.logResults(context);
-
-  ollamaService.saveResponse();
-
-  const instructions = await ollamaService.getInstructions();
-
-  for (let i = 0; i < instructions.length; i++) {
-    const instruction = instructions[i];
-    console.log(`Step ${i + 1}: ${instruction}`);
-    console.log("\n\n")
-  }
-}
-
-main();
