@@ -45,9 +45,7 @@ export class LanguageModel {
     })
 
     const responseData = await response.json()
-    const responseText = JSON.stringify(responseData)
-    const responseJson = JSON.parse(responseText)
-    return responseJson.response
+    return JSON.stringify(responseData)
   }
 
   getApiUrl = () => { return this.modelConfigs[this.modelName].apiUrl }
@@ -85,7 +83,7 @@ export class InstructionsGenerator {
   async generateSingleInstruction(query: Query): Promise<string> {
     const response = await this.languageModel.invoke(query)
     const responseJson = JSON.parse(response)
-    return responseJson.choices[0].text
+    return responseJson.response
   }
 
   responseToSteps(response: string): string[] {

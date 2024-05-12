@@ -15,7 +15,12 @@ async function main() {
   // const instructions = generator.generateInstructions(context);
   // console.log(instructions);
   const response = await new LanguageModel('llama3:8b').invoke(new Query(context.query));
-  console.log(JSON.parse(response).response);
+  const responseJson = JSON.parse(response);
+  // console.log(responseJson);
+  const responseText = JSON.parse(response).response
+  for (const step of responseText.split('\n\n')) {
+    console.log("PARSED STEP: ", step);
+  }
 
 }
 
