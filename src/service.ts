@@ -62,8 +62,8 @@ export class LanguageModel {
 // the instructions are then returned
 export class InstructionsGenerator {
   private readonly languageModel: LanguageModel
-  constructor(languageModel: LanguageModel) {
-    this.languageModel = languageModel
+  constructor(modelName: string) {
+    this.languageModel = new LanguageModel(modelName)
   }
 
   async generateInstructions(serviceContext: ServiceContext): Promise<string[]> {
@@ -79,7 +79,7 @@ export class InstructionsGenerator {
     }
     return instructions
   }
-
+  // TODO: need to pass better prompt for standardizing output
   async generateSingleInstruction(query: Query): Promise<string> {
     const response = await this.languageModel.invoke(query)
     const responseJson = JSON.parse(response)
@@ -96,3 +96,5 @@ export class InstructionsGenerator {
   }
 
 }
+
+// TODO: implement formatter
