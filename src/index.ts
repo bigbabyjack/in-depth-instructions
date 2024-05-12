@@ -1,4 +1,4 @@
-import { OllamaService } from "./service";
+import { InstructionsGenerator, LanguageModel, Query } from "./service";
 import { ServiceContext } from "./datastructures"
 
 async function main() {
@@ -8,28 +8,15 @@ async function main() {
   const context: ServiceContext = {
     id: '1',
     query: `Teach me how to write an arrow function in TypeScript. ${INITIAL_INSTRUCTIONS}`,
-    instructions: []
   };
 
-  const ollamaService = new OllamaService(context);
-  const response = await ollamaService.response;
-  // console.log(`Response: ${JSON.stringify(response)}`);
+  // const generator = new InstructionsGenerator(new LanguageModel('llama3:8b'));
+  //
+  // const instructions = generator.generateInstructions(context);
+  // console.log(instructions);
+  const response = await new LanguageModel('llama3:8b').invoke(new Query(context.query));
+  console.log(JSON.parse(response).response);
 
-  const responseDuration = response.total_duration / 1e+9;
-  console.log(`Response Duration: ${(responseDuration).toFixed(2)} seconds`);
-
-
-  ollamaService.logResults(context);
-
-  ollamaService.saveResponse();
-
-  const instructions = await ollamaService.getInstructions();
-
-  for (let i = 0; i < instructions.length; i++) {
-    const instruction = instructions[i];
-    console.log(`Step ${i + 1}: ${instruction}`);
-    console.log("\n\n")
-  }
 }
 
 main();

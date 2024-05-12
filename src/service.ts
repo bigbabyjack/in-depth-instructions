@@ -1,7 +1,7 @@
 import * as fs from 'fs';
-import { ServiceContext, Payload } from './datastructures';
+import { ServiceContext } from './datastructures';
 
-class Query {
+export class Query {
   query: string
   constructor(query: string) {
     this.query = query
@@ -45,9 +45,56 @@ export class LanguageModel {
     })
 
     const responseData = await response.json()
-    return JSON.stringify(responseData)
+    const responseText = JSON.stringify(responseData)
+    const responseJson = JSON.parse(responseText)
+    return responseJson.response
   }
 
   getApiUrl = () => { return this.modelConfigs[this.modelName].apiUrl }
+
+}
+// The instructions generator starts with a single user query
+// the query is then passed to the language model for a response
+// the response is parsed into steps
+// each step is then passed to the language model to generate an instruction
+// the instructions contain:
+// - the original query,
+// - the original response, 
+// - the emphasis on the current step
+// the instructions are then returned
+export class InstructionsGenerator {
+  private readonly languageModel: LanguageModel
+  constructor(languageModel: LanguageModel) {
+    this.languageModel = languageModel
+  }
+
+  async generateInstructions(serviceContext: ServiceContext): Promise<string[]> {
+    const initialQuery = new Query(serviceContext.query)
+    const response = await this.getInitialResponse(initialQuery)
+    const steps = this.responseToSteps(response)
+    const instructions = []
+    for (const step of steps) {
+      const queryContext = `Initial Query: ${initialQuery.query}\n\nResponse: ${response}\n\nStep: ${step}`
+      const query = new Query(queryContext)
+      const instruction = await this.generateSingleInstruction(query)
+      instructions.push(instruction)
+    }
+    return instructions
+  }
+
+  async generateSingleInstruction(query: Query): Promise<string> {
+    const response = await this.languageModel.invoke(query)
+    const responseJson = JSON.parse(response)
+    return responseJson.choices[0].text
+  }
+
+  responseToSteps(response: string): string[] {
+    return response.split('\n\n').filter(step => step !== '')
+  }
+
+  async getInitialResponse(query: Query): Promise<string> {
+    const response = await this.languageModel.invoke(query)
+    return response
+  }
 
 }
