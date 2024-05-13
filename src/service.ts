@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import { ServiceContext } from './datastructures';
+import { Prompts } from './prompts';
 
 export class Query {
   query: string
@@ -69,14 +70,13 @@ export class InstructionsGenerator {
   }
   // TODO: don't hardcode instructions here
   async generateInstructions(serviceContext: ServiceContext): Promise<string[]> {
-    const INITIAL_INSTRUCTIONS: string = "Your response should be in Markdown format with each step shown as a new line. Do not wrap your entire answer in a code block. Your response should be well structured with headers and subheaders."
-    const initialQuery = new Query(`Query: ${serviceContext.query}`, `Instructions: ${INITIAL_INSTRUCTIONS}\n\n`)
+    const initialQuery = new Query(`Query: ${serviceContext.query}`, Prompts.INITAL_RESPONSE)
     const response = await this.getInitialResponse(initialQuery)
     const steps = this.responseToSteps(response)
     const instructions = []
     for (const step of steps) {
       const queryContext = `Initial Query: ${initialQuery.query}\n\nResponse: ${response}\n\nStep: ${step}`
-      const query = new Query(queryContext)
+      const query = new Query(queryContext, Prompts.SINGLE_INSTRUCTION)
       const instruction = await this.generateSingleInstruction(query)
       instructions.push(instruction)
     }
