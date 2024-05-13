@@ -3,8 +3,10 @@ import { ServiceContext } from './datastructures';
 
 export class Query {
   query: string
-  constructor(query: string) {
+  system: string
+  constructor(query: string, system: string) {
     this.query = query
+    this.system = system
   }
 }
 
@@ -34,6 +36,7 @@ export class LanguageModel {
       body: JSON.stringify({
         model: this.modelName,
         prompt: query.query,
+        system: query.system,
         stream: false,
         format: 'json',
         options: {
@@ -67,7 +70,7 @@ export class InstructionsGenerator {
   // TODO: don't hardcode instructions here
   async generateInstructions(serviceContext: ServiceContext): Promise<string[]> {
     const INITIAL_INSTRUCTIONS: string = "Your response should be in Markdown format with each step shown as a new line. Do not wrap your entire answer in a code block. Your response should be well structured with headers and subheaders."
-    const initialQuery = new Query(`Instructions: ${INITIAL_INSTRUCTIONS}\n\n Query: ${serviceContext.query}`)
+    const initialQuery = new Query(`Query: ${serviceContext.query}`, `Instructions: ${INITIAL_INSTRUCTIONS}\n\n`)
     const response = await this.getInitialResponse(initialQuery)
     const steps = this.responseToSteps(response)
     const instructions = []
