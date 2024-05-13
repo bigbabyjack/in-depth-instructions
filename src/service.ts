@@ -35,12 +35,11 @@ export class LanguageModel {
         model: this.modelName,
         prompt: query.query,
         stream: false,
-        temperature: 0.0,
-        max_tokens: 50,
-        top_p: 1,
-        frequency_penalty: 0,
-        presence_penalty: 0,
-        stop: ["\n"],
+        format: 'json',
+        options: {
+          temperature: 0.0
+        }
+
       }),
     })
 
@@ -65,9 +64,10 @@ export class InstructionsGenerator {
   constructor(modelName: string) {
     this.languageModel = new LanguageModel(modelName)
   }
-
+  // TODO: don't hardcode instructions here
   async generateInstructions(serviceContext: ServiceContext): Promise<string[]> {
-    const initialQuery = new Query(serviceContext.query)
+    const INITIAL_INSTRUCTIONS: string = "Your response should be in Markdown format with each step shown as a new line. Do not wrap your entire answer in a code block. Your response should be well structured with headers and subheaders."
+    const initialQuery = new Query(`Instructions: ${INITIAL_INSTRUCTIONS}\n\n Query: ${serviceContext.query}`)
     const response = await this.getInitialResponse(initialQuery)
     const steps = this.responseToSteps(response)
     const instructions = []
