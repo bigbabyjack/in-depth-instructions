@@ -76,7 +76,6 @@ export class InstructionsGenerator {
     const responseData = await this.getInitialResponse(initialQuery)
     const response = JSON.parse(responseData).response
     const steps = this.responseToSteps(response)
-    console.log(`Number of steps: ${steps.length}`)
     // Map each step to an indexed promise to preserve order
     const instructionPromises = steps.map(async (step, index) => {
       const queryContext = `${Prompts.SINGLE_INSTRUCTION}\nInitial Query: ${serviceContext.query}\nStep: ${step}`
@@ -99,8 +98,6 @@ export class InstructionsGenerator {
     const response = await this.languageModel.invoke(query)
     const responseJson = JSON.parse(response)
     const parsedResponse = responseJson.response
-    console.log(`Parsed Response for step: ${parsedResponse}`)
-    console.log(`============================================`)
     return parsedResponse
   }
 
