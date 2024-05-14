@@ -12,20 +12,28 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const service_1 = require("./service");
 function main() {
     return __awaiter(this, void 0, void 0, function* () {
-        if (process.argv.length > 3) {
-            console.log("Too many arguments");
+        const minimist = require('minimist');
+        // Parse the arguments with a default value for model
+        const args = minimist(process.argv.slice(2), {
+            default: { model: 'llama3:8b' }
+        });
+        // The first argument (after the script name) is the query
+        const query = args._[0];
+        // Get the model name from the --model flag
+        const modelName = args.model;
+        if (query) {
+            console.log(`Query: ${query}`);
+        }
+        else {
+            console.log('No query specified.');
             return;
         }
-        if (process.argv.length < 3) {
-            console.log("Must pass a query");
-            return;
-        }
-        const query = process.argv[2];
+        console.log(`Model selected: ${modelName}`);
         const context = {
             id: '1',
             query: query
         };
-        const generator = new service_1.InstructionsGenerator('llama3:8b');
+        const generator = new service_1.InstructionsGenerator(modelName);
         const inDepthInstructions = yield generator.generateInstructions(context);
         (0, service_1.writeMarkdownToFile)(inDepthInstructions.join('\n\n'));
         // const responseData = await generator.getInitialResponse(context);
