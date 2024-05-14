@@ -3,22 +3,33 @@ import { ServiceContext } from "./datastructures"
 
 async function main() {
 
-  if (process.argv.length > 3) {
-    console.log("Too many arguments")
+  const minimist = require('minimist');
+
+  // Parse the arguments with a default value for model
+  const args = minimist(process.argv.slice(2), {
+    default: { model: 'llama3:8b' }
+  });
+
+  // The first argument (after the script name) is the query
+  const query = args._[0];
+  // Get the model name from the --model flag
+  const modelName = args.model;
+
+  if (query) {
+    console.log(`Query: ${query}`);
+  } else {
+    console.log('No query specified.');
     return
   }
-  if (process.argv.length < 3) {
-    console.log("Must pass a query")
-    return
-  }
-  const query = process.argv[2]
+
+  console.log(`Model selected: ${modelName}`);
 
   const context: ServiceContext = {
     id: '1',
     query: query
   };
 
-  const generator = new InstructionsGenerator('llama3:8b');
+  const generator = new InstructionsGenerator(modelName);
   const inDepthInstructions = await generator.generateInstructions(context)
   writeMarkdownToFile(inDepthInstructions.join('\n\n'))
 
