@@ -38,6 +38,7 @@ export class LanguageModel {
           model: this.modelName,
           prompt: `${query.query}`,
           stream: false,
+          seed: 47
         }),
       })
       if (!response.ok) {
@@ -78,7 +79,7 @@ export class InstructionsGenerator {
     console.log(`Number of steps: ${steps.length}`)
     // Map each step to an indexed promise to preserve order
     const instructionPromises = steps.map(async (step, index) => {
-      const queryContext = `${Prompts.SINGLE_INSTRUCTION}\n\nInitial Query: ${serviceContext.query}\n\nResponse: ${response}\n\nStep: ${step}`
+      const queryContext = `${Prompts.SINGLE_INSTRUCTION}\nInitial Query: ${serviceContext.query}\nStep: ${step}`
       const query = new Query(queryContext)
       return this.generateSingleInstruction(query).then(instruction => ({ index, instruction }))
     })
@@ -97,11 +98,14 @@ export class InstructionsGenerator {
     // console.log(`Generating instructions for ${JSON.stringify(query)}`)
     const response = await this.languageModel.invoke(query)
     const responseJson = JSON.parse(response)
-    return responseJson.response
+    const parsedResponse = responseJson.response
+    console.log(`Parsed Response for step: ${parsedResponse}`)
+    console.log(`============================================`)
+    return parsedResponse
   }
 
   responseToSteps(response: string): string[] {
-    return response.split('\n\n').filter(step => step !== '')
+    return response.split(/Step [0-9]+/).filter(step => step.trim() !== '')
   }
 
   async getInitialResponse(query: Query): Promise<string> {

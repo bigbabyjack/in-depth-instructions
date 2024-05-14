@@ -3,10 +3,19 @@ import { ServiceContext } from "./datastructures"
 
 async function main() {
 
+  if (process.argv.length > 3) {
+    console.log("Too many arguments")
+    return
+  }
+  if (process.argv.length < 3) {
+    console.log("Must pass a query")
+    return
+  }
+  const query = process.argv[2]
 
   const context: ServiceContext = {
     id: '1',
-    query: `Teach me how to use arrow functions in JavaScript.`,
+    query: query
   };
 
   const generator = new InstructionsGenerator('llama3:8b');
