@@ -1,4 +1,4 @@
-import { InstructionsGenerator, LanguageModel, Query } from "./service";
+import { InstructionsGenerator, writeMarkdownToFile } from "./service";
 import { ServiceContext } from "./datastructures"
 
 async function main() {
@@ -6,13 +6,18 @@ async function main() {
 
   const context: ServiceContext = {
     id: '1',
-    query: `Teach me how to write an arrow function in TypeScript.`,
+    query: `Teach me how to use arrow functions in JavaScript.`,
   };
 
   const generator = new InstructionsGenerator('llama3:8b');
+  const inDepthInstructions = await generator.generateInstructions(context)
+  writeMarkdownToFile(inDepthInstructions.join('\n\n'))
 
-  const instructions = await generator.generateInstructions(context);
-  console.log(instructions);
+  // const responseData = await generator.getInitialResponse(context);
+  // const response = JSON.parse(responseData)
+  // const responseText = response.response
+  // const steps = generator.responseToSteps(responseText)
+
   // const response = await new LanguageModel('llama3:8b').invoke(new Query(context.query));
   // const responseJson = JSON.parse(response);
   // // console.log(responseJson);

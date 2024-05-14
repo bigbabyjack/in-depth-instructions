@@ -4,10 +4,9 @@ import { Prompts } from './prompts';
 
 export class Query {
   query: string
-  system: string
-  constructor(query: string, system: string) {
+  system?: string
+  constructor(query: string) {
     this.query = query
-    this.system = system
   }
 }
 
@@ -29,26 +28,27 @@ export class LanguageModel {
 
   async invoke(query: Query): Promise<string> {
     const apiUrl = this.getApiUrl();
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: this.modelName,
-        prompt: query.query,
-        system: query.system,
-        stream: false,
-        format: 'json',
-        options: {
-          temperature: 0.0
-        }
-
-      }),
-    })
-
-    const responseData = await response.json()
-    return JSON.stringify(responseData)
+    try {
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: this.modelName,
+          prompt: `${query.query}`,
+          stream: false,
+        }),
+      })
+      if (!response.ok) {
+        throw new Error(`HTTP error! status ${response.status}`)
+      }
+      const responseData = await response.json()
+      return JSON.stringify(responseData)
+    } catch (err) {
+      console.log(`Error during fetch operation: ${err}`)
+      throw new Error('Failed to fetch data from API.')
+    }
   }
 
   getApiUrl = () => { return this.modelConfigs[this.modelName].apiUrl }
@@ -65,25 +65,36 @@ export class LanguageModel {
 // the instructions are then returned
 export class InstructionsGenerator {
   private readonly languageModel: LanguageModel
+
   constructor(modelName: string) {
     this.languageModel = new LanguageModel(modelName)
   }
-  // TODO: don't hardcode instructions here
+
   async generateInstructions(serviceContext: ServiceContext): Promise<string[]> {
-    const initialQuery = new Query(`Query: ${serviceContext.query}`, Prompts.INITAL_RESPONSE)
-    const response = await this.getInitialResponse(initialQuery)
+    const initialQuery = new Query(`${Prompts.INITIAL_RESPONSE}\n\nQuery: ${serviceContext.query}`,)
+    const responseData = await this.getInitialResponse(initialQuery)
+    const response = JSON.parse(responseData).response
     const steps = this.responseToSteps(response)
-    const instructions = []
-    for (const step of steps) {
-      const queryContext = `Initial Query: ${initialQuery.query}\n\nResponse: ${response}\n\nStep: ${step}`
-      const query = new Query(queryContext, Prompts.SINGLE_INSTRUCTION)
-      const instruction = await this.generateSingleInstruction(query)
-      instructions.push(instruction)
-    }
+    console.log(`Number of steps: ${steps.length}`)
+    // Map each step to an indexed promise to preserve order
+    const instructionPromises = steps.map(async (step, index) => {
+      const queryContext = `${Prompts.SINGLE_INSTRUCTION}\n\nInitial Query: ${serviceContext.query}\n\nResponse: ${response}\n\nStep: ${step}`
+      const query = new Query(queryContext)
+      return this.generateSingleInstruction(query).then(instruction => ({ index, instruction }))
+    })
+
+    const instructionsWithIndex = await Promise.all(instructionPromises)
+
+    // Sort by the original indices to ensure the order
+    instructionsWithIndex.sort((a, b) => a.index - b.index)
+
+    // Extract the instructions in the correct order
+    const instructions = instructionsWithIndex.map(item => item.instruction)
+
     return instructions
   }
-  // TODO: need to pass better prompt for standardizing output
   async generateSingleInstruction(query: Query): Promise<string> {
+    // console.log(`Generating instructions for ${JSON.stringify(query)}`)
     const response = await this.languageModel.invoke(query)
     const responseJson = JSON.parse(response)
     return responseJson.response
@@ -100,4 +111,12 @@ export class InstructionsGenerator {
 
 }
 
-// TODO: implement formatter
+export function writeMarkdownToFile(markdown: string): void {
+  fs.writeFile('./output.md', markdown, (err) => {
+    if (err) {
+      console.error('Error writing file:', err);
+    } else {
+      console.log('Success!');
+    }
+  });
+}
